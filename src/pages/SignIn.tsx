@@ -24,6 +24,8 @@ export default function SignIn() {
       await signInWithGitHub()
     } catch (error) {
       console.error('Error signing in:', error)
+      // You could add a toast notification here to show the error to users
+      alert('Failed to sign in. Please make sure Supabase is properly configured.')
     }
   }
 
