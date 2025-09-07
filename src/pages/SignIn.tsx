@@ -2,11 +2,13 @@ import { Button } from "@/components/ui/button-brutal"
 import { Github } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function SignIn() {
   const { signInWithGitHub, user, loading } = useAuth()
   const navigate = useNavigate()
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Check if Supabase is configured
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -17,15 +19,28 @@ export default function SignIn() {
     if (user && !loading) {
       navigate('/')
     }
+    
+    // Check for error in URL params
+    const urlParams = new URLSearchParams(window.location.search)
+    const errorParam = urlParams.get('error')
+    if (errorParam === 'auth_failed') {
+      setError('Authentication failed. Please try again.')
+    } else if (errorParam === 'unexpected') {
+      setError('An unexpected error occurred. Please try again.')
+    }
   }, [user, loading, navigate])
 
   const handleGitHubSignIn = async () => {
+    setIsSigningIn(true)
+    setError(null)
+    
     try {
       await signInWithGitHub()
     } catch (error) {
       console.error('Error signing in:', error)
-      // You could add a toast notification here to show the error to users
-      alert('Failed to sign in. Please make sure Supabase is properly configured.')
+      setError('Failed to sign in. Please make sure Supabase is properly configured.')
+    } finally {
+      setIsSigningIn(false)
     }
   }
 
@@ -92,15 +107,21 @@ export default function SignIn() {
             <p className="text-body text-muted-foreground">
               Sign in to access the bounty platform
             </p>
+            {error && (
+              <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
+                {error}
+              </div>
+            )}
           </div>
 
           <Button 
             onClick={handleGitHubSignIn}
+            disabled={isSigningIn}
             className="w-full font-black text-lg py-6"
             size="lg"
           >
             <Github className="mr-3 h-6 w-6" />
-            Continue with GitHub
+            {isSigningIn ? 'Signing in...' : 'Continue with GitHub'}
           </Button>
 
           <div className="mt-8 text-center">
