@@ -1,96 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Vorkr Design System - Neo-Brutalist + Hiro.so Aesthetic */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core Brand Colors */
+    --stacks-purple: 248 70% 63%;     /* #5546FF */
+    --mint-green: 172 100% 42%;       /* #00D4AA */
+    --deep-black: 0 0% 4%;            /* #0A0A0A */
+    --charcoal: 0 0% 10%;             /* #1A1A1A */
+    --pure-white: 0 0% 100%;          /* #FFFFFF */
+    --light-gray: 0 0% 96%;           /* #F5F5F5 */
+    --warning: 18 100% 60%;           /* #FF6B35 */
+    --success: 172 100% 42%;          /* #00D4AA */
+    --brutal-border: 0 0% 90%;        /* #E5E5E5 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Semantic Design Tokens */
+    --background: var(--pure-white);
+    --foreground: var(--deep-black);
+    
+    --card: var(--pure-white);
+    --card-foreground: var(--deep-black);
+    
+    --popover: var(--pure-white);
+    --popover-foreground: var(--deep-black);
+    
+    --primary: var(--stacks-purple);
+    --primary-foreground: var(--pure-white);
+    
+    --secondary: var(--charcoal);
+    --secondary-foreground: var(--pure-white);
+    
+    --muted: var(--light-gray);
+    --muted-foreground: var(--charcoal);
+    
+    --accent: var(--mint-green);
+    --accent-foreground: var(--deep-black);
+    
+    --destructive: var(--warning);
+    --destructive-foreground: var(--pure-white);
+    
+    --border: var(--brutal-border);
+    --input: var(--brutal-border);
+    --ring: var(--stacks-purple);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Neo-Brutalist Spacing & Effects */
+    --radius: 4px;
+    --border-thick: 4px;
+    --border-chunky: 6px;
+    --border-massive: 8px;
+    
+    /* Shadows */
+    --shadow-brutal: 8px 8px 0px hsl(var(--deep-black));
+    --shadow-hover: 12px 12px 0px hsl(var(--deep-black));
+    --shadow-pressed: 4px 4px 0px hsl(var(--deep-black));
+    --shadow-card: 6px 6px 0px hsl(var(--brutal-border));
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--stacks-purple)), hsl(var(--mint-green)));
+    --gradient-dark: linear-gradient(135deg, hsl(var(--deep-black)), hsl(var(--charcoal)));
+    
+    /* Typography Scale */
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    
+    /* Transitions */
+    --transition-brutal: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: var(--light-gray);
+    --sidebar-foreground: var(--deep-black);
+    --sidebar-primary: var(--stacks-purple);
+    --sidebar-primary-foreground: var(--pure-white);
+    --sidebar-accent: var(--brutal-border);
+    --sidebar-accent-foreground: var(--deep-black);
+    --sidebar-border: var(--brutal-border);
+    --sidebar-ring: var(--stacks-purple);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Dark Mode - Inverted Neo-Brutalist */
+    --background: var(--deep-black);
+    --foreground: var(--pure-white);
+    
+    --card: var(--charcoal);
+    --card-foreground: var(--pure-white);
+    
+    --popover: var(--charcoal);
+    --popover-foreground: var(--pure-white);
+    
+    --primary: var(--stacks-purple);
+    --primary-foreground: var(--pure-white);
+    
+    --secondary: var(--light-gray);
+    --secondary-foreground: var(--deep-black);
+    
+    --muted: var(--charcoal);
+    --muted-foreground: var(--light-gray);
+    
+    --accent: var(--mint-green);
+    --accent-foreground: var(--deep-black);
+    
+    --destructive: var(--warning);
+    --destructive-foreground: var(--pure-white);
+    
+    --border: hsl(0 0% 20%);
+    --input: hsl(0 0% 20%);
+    --ring: var(--stacks-purple);
+    
+    /* Dark Shadows */
+    --shadow-brutal: 8px 8px 0px hsl(0 0% 80%);
+    --shadow-hover: 12px 12px 0px hsl(0 0% 80%);
+    --shadow-pressed: 4px 4px 0px hsl(0 0% 80%);
+    --shadow-card: 6px 6px 0px hsl(0 0% 20%);
+    
+    --sidebar-background: var(--charcoal);
+    --sidebar-foreground: var(--pure-white);
+    --sidebar-primary: var(--stacks-purple);
+    --sidebar-primary-foreground: var(--pure-white);
+    --sidebar-accent: hsl(0 0% 20%);
+    --sidebar-accent-foreground: var(--pure-white);
+    --sidebar-border: hsl(0 0% 20%);
+    --sidebar-ring: var(--stacks-purple);
   }
 }
 
@@ -100,6 +135,77 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+@layer components {
+  /* Neo-Brutalist Button Variants */
+  .btn-brutal {
+    @apply relative inline-flex items-center justify-center px-6 py-3 font-bold text-foreground bg-background border-[var(--border-thick)] border-border transition-[var(--transition-brutal)];
+    box-shadow: var(--shadow-brutal);
+  }
+  
+  .btn-brutal:hover {
+    @apply -translate-x-1 -translate-y-1;
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .btn-brutal:active {
+    @apply translate-x-1 translate-y-1;
+    box-shadow: var(--shadow-pressed);
+  }
+  
+  .btn-primary-brutal {
+    @apply btn-brutal bg-primary text-primary-foreground border-primary;
+  }
+  
+  .btn-secondary-brutal {
+    @apply btn-brutal bg-secondary text-secondary-foreground border-secondary;
+  }
+  
+  .btn-accent-brutal {
+    @apply btn-brutal bg-accent text-accent-foreground border-accent;
+  }
+  
+  /* Brutalist Card */
+  .card-brutal {
+    @apply bg-card border-[var(--border-chunky)] border-border p-6 transition-[var(--transition-brutal)];
+    box-shadow: var(--shadow-card);
+  }
+  
+  .card-brutal:hover {
+    @apply -translate-x-1 -translate-y-1;
+    box-shadow: var(--shadow-brutal);
+  }
+  
+  /* Brutalist Input */
+  .input-brutal {
+    @apply w-full px-4 py-3 text-foreground bg-background border-[var(--border-thick)] border-border font-medium transition-[var(--transition-brutal)] focus:outline-none focus:ring-4 focus:ring-ring/20;
+  }
+  
+  /* Typography Classes */
+  .text-display {
+    @apply font-display font-black text-4xl md:text-6xl lg:text-7xl leading-tight;
+  }
+  
+  .text-heading {
+    @apply font-display font-bold text-2xl md:text-3xl lg:text-4xl;
+  }
+  
+  .text-subheading {
+    @apply font-display font-bold text-lg md:text-xl;
+  }
+  
+  .text-body-bold {
+    @apply font-body font-semibold;
+  }
+  
+  .text-body {
+    @apply font-body font-medium;
   }
 }

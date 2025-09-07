@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,11 +61,37 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        /* Vorkr Brand Colors */
+        'stacks-purple': 'hsl(var(--stacks-purple))',
+        'mint-green': 'hsl(var(--mint-green))',
+        'deep-black': 'hsl(var(--deep-black))',
+        'charcoal': 'hsl(var(--charcoal))',
+        'pure-white': 'hsl(var(--pure-white))',
+        'light-gray': 'hsl(var(--light-gray))',
+        'warning': 'hsl(var(--warning))',
+        'success': 'hsl(var(--success))',
+        'brutal-border': 'hsl(var(--brutal-border))',
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        brutal: "var(--radius)",
+      },
+      borderWidth: {
+        thick: "var(--border-thick)",
+        chunky: "var(--border-chunky)",
+        massive: "var(--border-massive)",
+      },
+      boxShadow: {
+        brutal: "var(--shadow-brutal)",
+        "brutal-hover": "var(--shadow-hover)",
+        "brutal-pressed": "var(--shadow-pressed)",
+        "brutal-card": "var(--shadow-card)",
+      },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-dark': 'var(--gradient-dark)',
       },
       keyframes: {
         "accordion-down": {
