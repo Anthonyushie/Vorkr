@@ -1,5 +1,47 @@
 # Welcome to your Lovable project
 
+## Setting up GitHub Authentication
+
+To enable GitHub authentication for your Vorkr bounty platform, follow these steps:
+
+### 1. Set up Supabase Project
+
+1. Go to [Supabase](https://supabase.com) and create a new project
+2. Once your project is created, go to Settings > API
+3. Copy your Project URL and anon/public key
+
+### 2. Configure GitHub OAuth
+
+1. In your Supabase dashboard, go to Authentication > Providers
+2. Find GitHub and click "Enable"
+3. You'll need to create a GitHub OAuth App:
+   - Go to GitHub Settings > Developer settings > OAuth Apps
+   - Click "New OAuth App"
+   - Fill in the details:
+     - Application name: `Vorkr` (or your preferred name)
+     - Homepage URL: `http://localhost:8080` (for development)
+     - Authorization callback URL: `https://your-project-ref.supabase.co/auth/v1/callback`
+   - Click "Register application"
+4. Copy the Client ID and Client Secret from GitHub
+5. Paste them into the Supabase GitHub provider settings
+6. Save the configuration
+
+### 3. Set Environment Variables
+
+Create a `.env` file in your project root with:
+
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+### 4. Update Production Settings
+
+When deploying to production:
+1. Update the GitHub OAuth App settings with your production URL
+2. Update the callback URL to: `https://your-project-ref.supabase.co/auth/v1/callback`
+3. Set the environment variables in your hosting platform
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/e551faaf-cade-48a2-811f-e952995e92ee
