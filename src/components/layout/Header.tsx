@@ -1,8 +1,19 @@
 import { Button } from "@/components/ui/button-brutal"
-import { Wallet, Search, Plus } from "lucide-react"
+import { Wallet, Search, Plus, LogOut } from "lucide-react"
 import { Link } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function Header() {
+  const { user, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b-chunky border-border bg-background">
       <div className="container mx-auto flex h-20 items-center justify-between px-6">
@@ -41,6 +52,11 @@ export function Header() {
           <Button variant="default" className="font-black">
             <Wallet className="mr-2 h-5 w-5" />
             Connect Wallet
+          </Button>
+          
+          <Button variant="ghost" onClick={handleSignOut} className="font-black">
+            <LogOut className="mr-2 h-5 w-5" />
+            Sign Out
           </Button>
         </div>
       </div>
