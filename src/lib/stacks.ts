@@ -1,5 +1,5 @@
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
-import { AppConfig, UserSession, FinishedAuthData } from '@stacks/connect';
+import { AppConfig, UserSession, FinishedAuthData, showConnect, openContractCall, openSignatureRequestPopup } from '@stacks/connect';
 import { toast } from '@/hooks/use-toast';
 import { 
   WalletType, 
@@ -84,8 +84,11 @@ export const getWalletType = (): WalletType => {
 export const connectWallet = async (walletType?: WalletType): Promise<FinishedAuthData> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure showConnect is available
-      const { showConnect } = await import('@stacks/connect');
+      // Validate that showConnect is available
+      if (typeof showConnect !== 'function') {
+        throw new Error('showConnect function is not available. @stacks/connect may not be properly loaded.');
+      }
+      
       const network = getStacksNetwork();
       
       showConnect({
@@ -116,7 +119,7 @@ export const connectWallet = async (walletType?: WalletType): Promise<FinishedAu
       walletError.walletType = walletType;
       toast({
         title: 'Connection Failed',
-        description: 'Failed to connect to wallet. Please try again.',
+        description: `Failed to connect to wallet: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
       reject(walletError);
@@ -210,8 +213,10 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
 export const callContract = async (request: TransactionRequest): Promise<any> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure openContractCall is available
-      const { openContractCall } = await import('@stacks/connect');
+      // Validate that openContractCall is available
+      if (typeof openContractCall !== 'function') {
+        throw new Error('openContractCall function is not available. @stacks/connect may not be properly loaded.');
+      }
       
       openContractCall({
         ...request,
@@ -231,7 +236,7 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
       console.error('Error calling contract:', error);
       toast({
         title: 'Transaction Failed',
-        description: 'Failed to execute transaction. Please try again.',
+        description: `Failed to execute transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
       reject(error);
@@ -243,8 +248,10 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
 export const signMessage = async (message: string): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure openSignatureRequestPopup is available
-      const { openSignatureRequestPopup } = await import('@stacks/connect');
+      // Validate that openSignatureRequestPopup is available
+      if (typeof openSignatureRequestPopup !== 'function') {
+        throw new Error('openSignatureRequestPopup function is not available. @stacks/connect may not be properly loaded.');
+      }
       
       openSignatureRequestPopup({
         message,
@@ -258,6 +265,11 @@ export const signMessage = async (message: string): Promise<string> => {
       });
     } catch (error) {
       console.error('Error signing message:', error);
+      toast({
+        title: 'Message Signing Failed',
+        description: `Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
       reject(error);
     }
   });

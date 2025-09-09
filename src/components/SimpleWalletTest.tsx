@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { showConnect, AppConfig, UserSession } from '@stacks/connect';
 
 export const SimpleWalletTest: React.FC = () => {
   const [status, setStatus] = useState<string>('Ready to test');
@@ -18,10 +19,20 @@ export const SimpleWalletTest: React.FC = () => {
     addLog('Starting direct connection test');
 
     try {
-      // Test 1: Check if @stacks/connect can be imported
-      addLog('Step 1: Importing @stacks/connect...');
-      const { showConnect, AppConfig, UserSession } = await import('@stacks/connect');
-      addLog('✅ @stacks/connect imported successfully');
+      // Test 1: Check if @stacks/connect functions are available
+      addLog('Step 1: Checking @stacks/connect functions...');
+      
+      if (typeof showConnect !== 'function') {
+        throw new Error('showConnect is not available or not a function');
+      }
+      if (typeof AppConfig !== 'function') {
+        throw new Error('AppConfig is not available or not a function');
+      }
+      if (typeof UserSession !== 'function') {
+        throw new Error('UserSession is not available or not a function');
+      }
+      
+      addLog('✅ @stacks/connect functions are available');
 
       // Test 2: Create basic configuration
       addLog('Step 2: Creating AppConfig...');
