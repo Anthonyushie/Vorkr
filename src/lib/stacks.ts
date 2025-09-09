@@ -9,12 +9,13 @@ export const network = STACKS_TESTNET; // Use STACKS_MAINNET for production
 export const connectWallet = () => {
   showConnect({
     appDetails: {
-      name: 'My App',
+      name: 'Stark Stacks Work',
       icon: window.location.origin + '/favicon.ico',
     },
-    redirectTo: '/',
+    redirectTo: window.location.href,
     onFinish: () => {
-      window.location.reload();
+      // Don't reload, let the context handle state updates
+      console.log('Wallet connected successfully');
     },
     userSession,
   });

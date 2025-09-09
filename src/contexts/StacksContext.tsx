@@ -60,20 +60,26 @@ export const StacksProvider: React.FC<StacksProviderProps> = ({ children }) => {
   }, []);
 
   const connectWallet = () => {
-    const { showConnect } = require('@stacks/connect');
-    showConnect({
-      appDetails: {
-        name: 'My App',
-        icon: window.location.origin + '/favicon.ico',
-      },
-      redirectTo: '/',
-      onFinish: () => {
-        setIsSignedIn(true);
-        setUserData(getUserData());
-        window.dispatchEvent(new CustomEvent('stacks:auth'));
-      },
-      userSession,
-    });
+    try {
+      const { showConnect } = require('@stacks/connect');
+      showConnect({
+        appDetails: {
+          name: 'Stark Stacks Work',
+          icon: window.location.origin + '/favicon.ico',
+        },
+        redirectTo: window.location.href,
+        onFinish: () => {
+          setTimeout(() => {
+            setIsSignedIn(true);
+            setUserData(getUserData());
+            window.dispatchEvent(new CustomEvent('stacks:auth'));
+          }, 100);
+        },
+        userSession,
+      });
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+    }
   };
 
   const disconnectWallet = () => {
