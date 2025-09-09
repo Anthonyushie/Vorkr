@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { showConnect, AppConfig, UserSession } from '@stacks/connect';
 
 export const DebugWallet: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -45,17 +44,32 @@ export const DebugWallet: React.FC = () => {
     addLog('Testing basic Stacks Connect...');
     
     try {
-      // Validate that showConnect is available
+      addLog('Step 1: Importing @stacks/connect...');
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        addLog(`❌ Failed to import @stacks/connect: ${error}`);
+        throw error;
+      });
+      
+      addLog('✅ @stacks/connect imported successfully');
+      addLog(`Available exports: ${Object.keys(stacksConnect).join(', ')}`);
+      
+      // Try to get functions from different possible locations
+      const showConnect = stacksConnect.showConnect || stacksConnect.default?.showConnect || (stacksConnect as any).showConnect;
+      const AppConfig = stacksConnect.AppConfig || stacksConnect.default?.AppConfig || (stacksConnect as any).AppConfig;
+      const UserSession = stacksConnect.UserSession || stacksConnect.default?.UserSession || (stacksConnect as any).UserSession;
+      
+      // Validate functions
       if (typeof showConnect !== 'function') {
-        throw new Error('showConnect function is not available. @stacks/connect may not be properly loaded.');
+        addLog(`❌ showConnect is not a function. Type: ${typeof showConnect}`);
+        throw new Error('showConnect function not available');
       }
       
-      addLog('Stacks Connect is available');
+      addLog('✅ showConnect is available');
       
       const appConfig = new AppConfig(['store_write', 'publish_data']);
       const userSession = new UserSession({ appConfig });
       
-      addLog('AppConfig and UserSession created');
+      addLog('✅ AppConfig and UserSession created');
       
       showConnect({
         appDetails: {
@@ -72,7 +86,7 @@ export const DebugWallet: React.FC = () => {
         userSession,
       });
       
-      addLog('showConnect called successfully');
+      addLog('✅ showConnect called successfully');
       
     } catch (error) {
       addLog(`❌ Error in basic connection: ${error instanceof Error ? error.message : String(error)}`);
@@ -107,36 +121,34 @@ export const DebugWallet: React.FC = () => {
     addLog(`Potential wallet keys in window: ${walletKeys.join(', ')}`);
   };
 
-  const testLibraryImports = () => {
+  const testLibraryImports = async () => {
     addLog('Testing library imports...');
     
     try {
-      // Test if all required functions are available
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        addLog(`❌ Failed to import @stacks/connect: ${error}`);
+        throw error;
+      });
+      
+      addLog('✅ @stacks/connect imported successfully');
+      addLog(`Available exports: ${Object.keys(stacksConnect).slice(0, 10).join(', ')}...`);
+      
+      // Test if specific functions are available
       const functions = {
-        showConnect: typeof showConnect,
-        AppConfig: typeof AppConfig,
-        UserSession: typeof UserSession,
+        showConnect: stacksConnect.showConnect ? 'function' : 'not found',
+        AppConfig: stacksConnect.AppConfig ? 'function' : 'not found',
+        UserSession: stacksConnect.UserSession ? 'function' : 'not found',
+        openContractCall: stacksConnect.openContractCall ? 'function' : 'not found',
+        openSignatureRequestPopup: stacksConnect.openSignatureRequestPopup ? 'function' : 'not found',
       };
       
-      addLog(`Available functions: ${JSON.stringify(functions, null, 2)}`);
+      addLog(`Function availability: ${JSON.stringify(functions, null, 2)}`);
       
-      // Test if functions are callable
-      if (typeof showConnect === 'function') {
-        addLog('✅ showConnect is a function');
-      } else {
-        addLog('❌ showConnect is not a function');
-      }
-      
-      if (typeof AppConfig === 'function') {
-        addLog('✅ AppConfig is a function');
-      } else {
-        addLog('❌ AppConfig is not a function');
-      }
-      
-      if (typeof UserSession === 'function') {
-        addLog('✅ UserSession is a function');
-      } else {
-        addLog('❌ UserSession is not a function');
+      // Check if functions exist in different locations
+      if (!stacksConnect.showConnect && stacksConnect.default) {
+        addLog('Checking default export...');
+        const defaultFunctions = Object.keys(stacksConnect.default).slice(0, 10);
+        addLog(`Default export contains: ${defaultFunctions.join(', ')}`);
       }
       
     } catch (error) {
