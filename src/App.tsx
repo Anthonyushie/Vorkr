@@ -10,6 +10,7 @@ import AuthCallback from "@/pages/AuthCallback";
 import Index from "./pages/Index";
 import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
+import WalletDemo from "./pages/WalletDemo";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/wallet-demo" element={<WalletDemo />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/" element={
