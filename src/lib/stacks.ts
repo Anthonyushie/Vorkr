@@ -1,5 +1,5 @@
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
-import { AppConfig, UserSession, FinishedAuthData, showConnect, openContractCall, openSignatureRequestPopup } from '@stacks/connect';
+import { AppConfig, UserSession, FinishedAuthData } from '@stacks/connect';
 import { toast } from '@/hooks/use-toast';
 import { 
   WalletType, 
@@ -84,9 +84,19 @@ export const getWalletType = (): WalletType => {
 export const connectWallet = async (walletType?: WalletType): Promise<FinishedAuthData> => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet connection library. Please refresh the page and try again.');
+      });
+      
+      // Try to get showConnect from different possible locations
+      const showConnect = stacksConnect.showConnect || stacksConnect.default?.showConnect || (stacksConnect as any).showConnect;
+      
       // Validate that showConnect is available
       if (typeof showConnect !== 'function') {
-        throw new Error('showConnect function is not available. @stacks/connect may not be properly loaded.');
+        console.error('showConnect not found in:', Object.keys(stacksConnect));
+        throw new Error('Wallet connection function not available. Please refresh the page and try again.');
       }
       
       const network = getStacksNetwork();
@@ -213,9 +223,19 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
 export const callContract = async (request: TransactionRequest): Promise<any> => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet library. Please refresh the page and try again.');
+      });
+      
+      // Try to get openContractCall from different possible locations
+      const openContractCall = stacksConnect.openContractCall || stacksConnect.default?.openContractCall || (stacksConnect as any).openContractCall;
+      
       // Validate that openContractCall is available
       if (typeof openContractCall !== 'function') {
-        throw new Error('openContractCall function is not available. @stacks/connect may not be properly loaded.');
+        console.error('openContractCall not found in:', Object.keys(stacksConnect));
+        throw new Error('Contract call function not available. Please refresh the page and try again.');
       }
       
       openContractCall({
@@ -248,9 +268,19 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
 export const signMessage = async (message: string): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet library. Please refresh the page and try again.');
+      });
+      
+      // Try to get openSignatureRequestPopup from different possible locations
+      const openSignatureRequestPopup = stacksConnect.openSignatureRequestPopup || stacksConnect.default?.openSignatureRequestPopup || (stacksConnect as any).openSignatureRequestPopup;
+      
       // Validate that openSignatureRequestPopup is available
       if (typeof openSignatureRequestPopup !== 'function') {
-        throw new Error('openSignatureRequestPopup function is not available. @stacks/connect may not be properly loaded.');
+        console.error('openSignatureRequestPopup not found in:', Object.keys(stacksConnect));
+        throw new Error('Message signing function not available. Please refresh the page and try again.');
       }
       
       openSignatureRequestPopup({

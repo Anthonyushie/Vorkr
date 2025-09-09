@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { showConnect, AppConfig, UserSession } from '@stacks/connect';
 
 export const SimpleWalletTest: React.FC = () => {
   const [status, setStatus] = useState<string>('Ready to test');
@@ -19,11 +18,26 @@ export const SimpleWalletTest: React.FC = () => {
     addLog('Starting direct connection test');
 
     try {
-      // Test 1: Check if @stacks/connect functions are available
-      addLog('Step 1: Checking @stacks/connect functions...');
+      // Test 1: Import @stacks/connect
+      addLog('Step 1: Importing @stacks/connect...');
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        addLog(`❌ Failed to import: ${error}`);
+        throw error;
+      });
       
+      addLog('✅ @stacks/connect imported successfully');
+      addLog(`Available exports: ${Object.keys(stacksConnect).slice(0, 10).join(', ')}`);
+      
+      // Try to get functions from different possible locations
+      const showConnect = stacksConnect.showConnect || stacksConnect.default?.showConnect || (stacksConnect as any).showConnect;
+      const AppConfig = stacksConnect.AppConfig || stacksConnect.default?.AppConfig || (stacksConnect as any).AppConfig;
+      const UserSession = stacksConnect.UserSession || stacksConnect.default?.UserSession || (stacksConnect as any).UserSession;
+      
+      // Validate functions
       if (typeof showConnect !== 'function') {
-        throw new Error('showConnect is not available or not a function');
+        addLog(`❌ showConnect is not a function. Type: ${typeof showConnect}`);
+        addLog(`Trying to find it in: ${JSON.stringify(Object.keys(stacksConnect).slice(0, 20))}`);
+        throw new Error('showConnect function not available');
       }
       if (typeof AppConfig !== 'function') {
         throw new Error('AppConfig is not available or not a function');
