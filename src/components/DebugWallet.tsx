@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { showConnect, AppConfig, UserSession } from '@stacks/connect';
 
 export const DebugWallet: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -44,10 +45,12 @@ export const DebugWallet: React.FC = () => {
     addLog('Testing basic Stacks Connect...');
     
     try {
-      const { showConnect } = await import('@stacks/connect');
-      const { AppConfig, UserSession } = await import('@stacks/connect');
+      // Validate that showConnect is available
+      if (typeof showConnect !== 'function') {
+        throw new Error('showConnect function is not available. @stacks/connect may not be properly loaded.');
+      }
       
-      addLog('Stacks Connect imported successfully');
+      addLog('Stacks Connect is available');
       
       const appConfig = new AppConfig(['store_write', 'publish_data']);
       const userSession = new UserSession({ appConfig });
@@ -72,7 +75,7 @@ export const DebugWallet: React.FC = () => {
       addLog('showConnect called successfully');
       
     } catch (error) {
-      addLog(`❌ Error in basic connection: ${error}`);
+      addLog(`❌ Error in basic connection: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Connection error:', error);
     }
   };
@@ -102,6 +105,43 @@ export const DebugWallet: React.FC = () => {
     );
     
     addLog(`Potential wallet keys in window: ${walletKeys.join(', ')}`);
+  };
+
+  const testLibraryImports = () => {
+    addLog('Testing library imports...');
+    
+    try {
+      // Test if all required functions are available
+      const functions = {
+        showConnect: typeof showConnect,
+        AppConfig: typeof AppConfig,
+        UserSession: typeof UserSession,
+      };
+      
+      addLog(`Available functions: ${JSON.stringify(functions, null, 2)}`);
+      
+      // Test if functions are callable
+      if (typeof showConnect === 'function') {
+        addLog('✅ showConnect is a function');
+      } else {
+        addLog('❌ showConnect is not a function');
+      }
+      
+      if (typeof AppConfig === 'function') {
+        addLog('✅ AppConfig is a function');
+      } else {
+        addLog('❌ AppConfig is not a function');
+      }
+      
+      if (typeof UserSession === 'function') {
+        addLog('✅ UserSession is a function');
+      } else {
+        addLog('❌ UserSession is not a function');
+      }
+      
+    } catch (error) {
+      addLog(`❌ Error testing library imports: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   return (
@@ -147,10 +187,13 @@ export const DebugWallet: React.FC = () => {
           <CardTitle>🧪 Test Actions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Button onClick={testWalletDetection} className="w-full">
+          <Button onClick={testLibraryImports} className="w-full">
+            Test Library Imports
+          </Button>
+          <Button onClick={testWalletDetection} className="w-full" variant="outline">
             Test Wallet Detection
           </Button>
-          <Button onClick={testBasicConnection} className="w-full" variant="outline">
+          <Button onClick={testBasicConnection} className="w-full" variant="secondary">
             Test Basic Connection
           </Button>
         </CardContent>
