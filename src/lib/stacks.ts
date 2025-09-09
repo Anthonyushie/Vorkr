@@ -1,5 +1,5 @@
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
-import { AppConfig, UserSession, showConnect, FinishedAuthData } from '@stacks/connect';
+import { AppConfig, UserSession, FinishedAuthData } from '@stacks/connect';
 import { toast } from '@/hooks/use-toast';
 import { 
   WalletType, 
@@ -82,8 +82,10 @@ export const getWalletType = (): WalletType => {
 
 // Enhanced connection functions
 export const connectWallet = async (walletType?: WalletType): Promise<FinishedAuthData> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
+      // Dynamic import to ensure showConnect is available
+      const { showConnect } = await import('@stacks/connect');
       const network = getStacksNetwork();
       
       showConnect({
@@ -206,9 +208,10 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
 
 // Transaction helpers
 export const callContract = async (request: TransactionRequest): Promise<any> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      const { openContractCall } = require('@stacks/connect');
+      // Dynamic import to ensure openContractCall is available
+      const { openContractCall } = await import('@stacks/connect');
       
       openContractCall({
         ...request,
@@ -238,9 +241,10 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
 
 // Message signing
 export const signMessage = async (message: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      const { openSignatureRequestPopup } = require('@stacks/connect');
+      // Dynamic import to ensure openSignatureRequestPopup is available
+      const { openSignatureRequestPopup } = await import('@stacks/connect');
       
       openSignatureRequestPopup({
         message,

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { ConnectWallet } from '@/components/wallet/ConnectWallet';
+import { DebugWallet } from '@/components/DebugWallet';
+import { SimpleWalletTest } from '@/components/SimpleWalletTest';
 import { useStacks } from '@/contexts/StacksContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Wallet,
   ExternalLink,
@@ -17,6 +20,7 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Bug,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -91,10 +95,37 @@ const WalletDemo = () => {
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Wallet Connection */}
-          <div className="space-y-6">
-            <ConnectWallet />
+        <Tabs defaultValue="wallet" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="wallet" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Wallet Integration
+            </TabsTrigger>
+            <TabsTrigger value="debug" className="flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Debug Tools
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="debug" className="space-y-6">
+            <Alert className="border-orange-200 bg-orange-50">
+              <Bug className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Debug Mode:</strong> Use these tools to diagnose wallet connection issues. 
+                Check the debug logs and test basic connection functionality.
+              </AlertDescription>
+            </Alert>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SimpleWalletTest />
+              <DebugWallet />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="wallet">
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* Wallet Connection */}
+              <div className="space-y-6">
+                <ConnectWallet />
 
             {/* Wallet Detection Status */}
             <Card>
@@ -369,8 +400,10 @@ const WalletDemo = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-          </div>
-        </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground border-t pt-8">
