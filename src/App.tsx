@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
 import WalletDemo from "./pages/WalletDemo";
+import WalletTest from "./pages/WalletTest";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/wallet-demo" element={<WalletDemo />} />
+            <Route path="/wallet-test" element={<WalletTest />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/" element={
