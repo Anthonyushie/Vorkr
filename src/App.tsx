@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import WalletDemo from "./pages/WalletDemo";
 import WalletTest from "./pages/WalletTest";
 import Dashboard from "./pages/Dashboard";
+import Create from "./pages/Create";
+import Browse from "./pages/Browse";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,16 @@ const App = () => (
                 <Route path="/wallet-test" element={<WalletTest />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/browse" element={
+                  <ProtectedRoute>
+                    <Browse />
+                  </ProtectedRoute>
+                } />
+                <Route path="/create" element={
+                  <ProtectedRoute>
+                    <Create />
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />

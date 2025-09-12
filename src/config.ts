@@ -1,0 +1,2 @@
+export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "SPXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+export const CONTRACT_NAME = import.meta.env.VITE_CONTRACT_NAME || "bounty-escrow"

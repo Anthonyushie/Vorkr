@@ -1,0 +1,28 @@
+[project]
+name = "vorkr-bounty-escrow"
+
+[contracts.bounty-escrow]
+path = "contracts/bounty-escrow.clar"
+clarity_version = 2
+
+[repl]
+costs_version = 2
+
+[accounts]
+deployer = { mnemonic = "replace-with-your-12-words", balance = 100000000000000 }
+oracle   = { mnemonic = "replace-with-your-12-words", balance = 100000000000000 }
+user1    = { mnemonic = "replace-with-your-12-words", balance = 100000000000 }
+user2    = { mnemonic = "replace-with-your-12-words", balance = 100000000000 }
+
+[networks]
+# Local Devnet (clarinet integrate)
+devnet = { url = "http://localhost:20443", network_id = 2147483648 }
+
+testnet = { url = "https://api.testnet.hiro.so", network_id = 2147483648 }
+mainnet = { url = "https://api.hiro.so", network_id = 1 }
+
+# Usage:
+# clarinet check
+# clarinet console
+# clarinet integrate
+# clarinet deploy --network testnet bounty-escrow
