@@ -1,31 +1,32 @@
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
-import { 
-  AppConfig, 
-  UserSession, 
-  FinishedAuthData,
-  showConnect,
-  openContractCall,
-  openSignatureRequestPopup
+import {
+  AppConfig,
+  UserSession,
+  connect as stacksConnect,
+  disconnect as stacksDisconnect,
+  isConnected as stacksIsConnected,
+  request as stacksRequest,
+  getLocalStorage,
 } from '@stacks/connect';
 import { toast } from '@/hooks/use-toast';
-import { 
-  WalletType, 
-  WalletInfo, 
-  NetworkType, 
-  NetworkConfig, 
+import {
+  WalletType,
+  WalletInfo,
+  NetworkType,
+  NetworkConfig,
   StacksProvider,
   WalletError,
-  TransactionRequest 
+  TransactionRequest,
 } from '@/types/stacks';
 
-// App Configuration
+// App Configuration (kept for partial backward-compat in v8)
 export const appConfig = new AppConfig(['store_write', 'publish_data']);
 export const userSession = new UserSession({ appConfig });
 
 // Network Configuration
 export const getNetworkFromEnv = (): NetworkType => {
   const envNetwork = import.meta.env.VITE_STACKS_NETWORK?.toLowerCase();
-  return (envNetwork === 'mainnet' || envNetwork === 'testnet') ? envNetwork : 'testnet';
+  return envNetwork === 'mainnet' || envNetwork === 'testnet' ? envNetwork : 'testnet';
 };
 
 export const getStacksNetwork = (networkType?: NetworkType): StacksNetwork => {
@@ -71,7 +72,7 @@ export const detectAvailableWallets = (): WalletInfo[] => {
       id: 'xverse',
       name: 'Xverse Wallet',
       icon: '✨',
-      installed: !!(window.XverseProviders?.StacksProvider),
+      installed: !!window.XverseProviders?.StacksProvider,
       provider: window.XverseProviders?.StacksProvider,
     },
   ];
@@ -80,62 +81,57 @@ export const detectAvailableWallets = (): WalletInfo[] => {
 };
 
 export const getWalletType = (): WalletType => {
-  // Check for specific wallet providers
   if (window.LeatherProvider || (window as any).LeatherProvider) return 'leather';
   if (window.XverseProviders?.StacksProvider) return 'xverse';
   if (window.StacksProvider || window.HiroWalletProvider) return 'hiro';
   return 'unknown';
 };
 
-// Enhanced connection functions
-export const connectWallet = async (walletType?: WalletType): Promise<FinishedAuthData> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const network = getStacksNetwork();
-      
-      showConnect({
-        appDetails: {
-          name: 'Vorkr - Stacks Bounty Platform',
-          icon: window.location.origin + '/favicon.ico',
-        },
-        redirectTo: window.location.href,
-        network,
-        userSession,
-        onFinish: (authData) => {
-          console.log('Wallet connected successfully:', getWalletType());
-          toast({
-            title: 'Wallet Connected',
-            description: `Successfully connected to ${getWalletType()} wallet`,
-          });
-          resolve(authData);
-        },
-        onCancel: () => {
-          const error = new Error('User cancelled wallet connection') as WalletError;
-          error.walletType = walletType;
-          reject(error);
-        },
-      });
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      const walletError = error as WalletError;
-      walletError.walletType = walletType;
-      toast({
-        title: 'Connection Failed',
-        description: `Failed to connect to wallet: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: 'destructive',
-      });
-      reject(walletError);
-    }
-  });
+// Connection
+export const connectWallet = async (walletType?: WalletType): Promise<any> => {
+  try {
+    const approvedProviderIds =
+      walletType === 'leather'
+        ? ['LeatherProvider']
+        : walletType === 'hiro'
+        ? ['StacksProvider']
+        : walletType === 'xverse'
+        ? ['xverse']
+        : undefined;
+
+    const response = await stacksConnect({ forceWalletSelect: true, approvedProviderIds });
+
+    toast({
+      title: 'Wallet Connected',
+      description: `Successfully connected to ${getWalletType()} wallet`,
+    });
+
+    // Notify listeners (context hooks) to refresh state
+    window.dispatchEvent(new CustomEvent('stacks:auth'));
+
+    return response;
+  } catch (error) {
+    console.error('Error connecting wallet:', error);
+    const walletError = error as WalletError;
+    walletError.walletType = walletType;
+    toast({
+      title: 'Connection Failed',
+      description: `Failed to connect to wallet: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: 'destructive',
+    });
+    throw walletError;
+  }
 };
 
 export const disconnectWallet = (): void => {
   try {
-    userSession.signUserOut();
+    stacksDisconnect();
+    userSession.signUserOut?.();
     toast({
       title: 'Wallet Disconnected',
       description: 'Successfully disconnected from wallet',
     });
+    window.dispatchEvent(new CustomEvent('stacks:auth'));
   } catch (error) {
     console.error('Error disconnecting wallet:', error);
     toast({
@@ -149,7 +145,7 @@ export const disconnectWallet = (): void => {
 // Authentication helpers
 export const isUserSignedIn = (): boolean => {
   try {
-    return userSession.isUserSignedIn();
+    return stacksIsConnected();
   } catch (error) {
     console.error('Error checking sign-in status:', error);
     return false;
@@ -158,7 +154,8 @@ export const isUserSignedIn = (): boolean => {
 
 export const getUserData = () => {
   try {
-    return userSession.loadUserData();
+    // v8 stores addresses in local storage by default
+    return getLocalStorage?.() as any;
   } catch (error) {
     console.error('Error loading user data:', error);
     return null;
@@ -168,13 +165,18 @@ export const getUserData = () => {
 // Address helpers
 export const getStxAddress = (networkType?: NetworkType): string | null => {
   try {
-    const userData = getUserData();
-    if (!userData?.profile?.stxAddress) return null;
-    
-    const network = networkType || getNetworkFromEnv();
-    return network === 'mainnet' 
-      ? userData.profile.stxAddress.mainnet 
-      : userData.profile.stxAddress.testnet;
+    const ls = getLocalStorage?.();
+    const stxAddress = ls?.addresses?.stx?.[0]?.address as string | undefined;
+    if (stxAddress) return stxAddress;
+
+    // Fallback to legacy UserSession cache if available
+    const legacy = (userSession as any)?.loadUserData?.();
+    if (legacy?.profile?.stxAddress) {
+      const network = networkType || getNetworkFromEnv();
+      return network === 'mainnet' ? legacy.profile.stxAddress.mainnet : legacy.profile.stxAddress.testnet;
+    }
+
+    return null;
   } catch (error) {
     console.error('Error getting STX address:', error);
     return null;
@@ -186,11 +188,11 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
   try {
     const network = getStacksNetwork(networkType);
     const response = await fetch(`${network.coreApiUrl}/extended/v1/address/${address}/balances`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return {
       stx: {
@@ -201,8 +203,8 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
       fungibleTokens: Object.entries(data.fungible_tokens || {}).map(([contractId, tokenData]: [string, any]) => ({
         contractId,
         symbol: contractId.split('::')[1] || 'Unknown',
-        balance: tokenData.balance,
-        decimals: tokenData.decimals || 6,
+        balance: (tokenData as any).balance,
+        decimals: (tokenData as any).decimals || 6,
       })),
     };
   } catch (error) {
@@ -212,59 +214,52 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
 };
 
 // Transaction helpers
-export const callContract = async (request: TransactionRequest): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    try {
-      openContractCall({
-        ...request,
-        onFinish: (data: any) => {
-          toast({
-            title: 'Transaction Sent',
-            description: 'Transaction has been broadcast to the network',
-          });
-          resolve(data);
-        },
-        onCancel: () => {
-          const error = new Error('Transaction cancelled by user');
-          reject(error);
-        },
-      });
-    } catch (error) {
-      console.error('Error calling contract:', error);
-      toast({
-        title: 'Transaction Failed',
-        description: `Failed to execute transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: 'destructive',
-      });
-      reject(error);
-    }
-  });
+export const callContract = async (tx: TransactionRequest): Promise<any> => {
+  try {
+    const networkType: NetworkType = tx.network?.isTestnet ? 'testnet' : 'mainnet';
+
+    const result = await stacksRequest('stx_callContract', {
+      contract: `${tx.contractAddress}.${tx.contractName}`,
+      functionName: tx.functionName,
+      functionArgs: tx.functionArgs,
+      network: networkType,
+      postConditionMode: tx.postConditionMode,
+      postConditions: tx.postConditions,
+      fee: tx.fee,
+      nonce: tx.nonce,
+    });
+
+    toast({
+      title: 'Transaction Sent',
+      description: 'Transaction has been broadcast to the network',
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error calling contract:', error);
+    toast({
+      title: 'Transaction Failed',
+      description: `Failed to execute transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: 'destructive',
+    });
+    throw error;
+  }
 };
 
 // Message signing
 export const signMessage = async (message: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      openSignatureRequestPopup({
-        message,
-        network: getStacksNetwork(),
-        onFinish: (data: any) => {
-          resolve(data.signature);
-        },
-        onCancel: () => {
-          reject(new Error('Message signing cancelled by user'));
-        },
-      });
-    } catch (error) {
-      console.error('Error signing message:', error);
-      toast({
-        title: 'Message Signing Failed',
-        description: `Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: 'destructive',
-      });
-      reject(error);
-    }
-  });
+  try {
+    const result = await stacksRequest('stx_signMessage', { message });
+    return (result as any).signature as string;
+  } catch (error) {
+    console.error('Error signing message:', error);
+    toast({
+      title: 'Message Signing Failed',
+      description: `Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: 'destructive',
+    });
+    throw error;
+  }
 };
 
 // Network validation
@@ -296,9 +291,9 @@ export const waitForWalletInjection = (timeout = 3000): Promise<boolean> => {
     };
 
     checkWallet();
-    
+
     const interval = setInterval(checkWallet, 100);
-    
+
     setTimeout(() => {
       clearInterval(interval);
       resolve(false);
