@@ -84,8 +84,21 @@ export const getWalletType = (): WalletType => {
 export const connectWallet = async (walletType?: WalletType): Promise<FinishedAuthData> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure showConnect is available
-      const { showConnect } = await import('@stacks/connect');
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet connection library. Please refresh the page and try again.');
+      });
+      
+      // Try to get showConnect from different possible locations
+      const showConnect = stacksConnect.showConnect || stacksConnect.default?.showConnect || (stacksConnect as any).showConnect;
+      
+      // Validate that showConnect is available
+      if (typeof showConnect !== 'function') {
+        console.error('showConnect not found in:', Object.keys(stacksConnect));
+        throw new Error('Wallet connection function not available. Please refresh the page and try again.');
+      }
+      
       const network = getStacksNetwork();
       
       showConnect({
@@ -116,7 +129,7 @@ export const connectWallet = async (walletType?: WalletType): Promise<FinishedAu
       walletError.walletType = walletType;
       toast({
         title: 'Connection Failed',
-        description: 'Failed to connect to wallet. Please try again.',
+        description: `Failed to connect to wallet: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
       reject(walletError);
@@ -210,8 +223,20 @@ export const fetchStxBalance = async (address: string, networkType?: NetworkType
 export const callContract = async (request: TransactionRequest): Promise<any> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure openContractCall is available
-      const { openContractCall } = await import('@stacks/connect');
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet library. Please refresh the page and try again.');
+      });
+      
+      // Try to get openContractCall from different possible locations
+      const openContractCall = stacksConnect.openContractCall || stacksConnect.default?.openContractCall || (stacksConnect as any).openContractCall;
+      
+      // Validate that openContractCall is available
+      if (typeof openContractCall !== 'function') {
+        console.error('openContractCall not found in:', Object.keys(stacksConnect));
+        throw new Error('Contract call function not available. Please refresh the page and try again.');
+      }
       
       openContractCall({
         ...request,
@@ -231,7 +256,7 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
       console.error('Error calling contract:', error);
       toast({
         title: 'Transaction Failed',
-        description: 'Failed to execute transaction. Please try again.',
+        description: `Failed to execute transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
       reject(error);
@@ -243,8 +268,20 @@ export const callContract = async (request: TransactionRequest): Promise<any> =>
 export const signMessage = async (message: string): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dynamic import to ensure openSignatureRequestPopup is available
-      const { openSignatureRequestPopup } = await import('@stacks/connect');
+      // Use dynamic import with better error handling
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        console.error('Failed to import @stacks/connect:', error);
+        throw new Error('Failed to load wallet library. Please refresh the page and try again.');
+      });
+      
+      // Try to get openSignatureRequestPopup from different possible locations
+      const openSignatureRequestPopup = stacksConnect.openSignatureRequestPopup || stacksConnect.default?.openSignatureRequestPopup || (stacksConnect as any).openSignatureRequestPopup;
+      
+      // Validate that openSignatureRequestPopup is available
+      if (typeof openSignatureRequestPopup !== 'function') {
+        console.error('openSignatureRequestPopup not found in:', Object.keys(stacksConnect));
+        throw new Error('Message signing function not available. Please refresh the page and try again.');
+      }
       
       openSignatureRequestPopup({
         message,
@@ -258,6 +295,11 @@ export const signMessage = async (message: string): Promise<string> => {
       });
     } catch (error) {
       console.error('Error signing message:', error);
+      toast({
+        title: 'Message Signing Failed',
+        description: `Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
       reject(error);
     }
   });

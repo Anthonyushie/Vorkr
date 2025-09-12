@@ -44,15 +44,32 @@ export const DebugWallet: React.FC = () => {
     addLog('Testing basic Stacks Connect...');
     
     try {
-      const { showConnect } = await import('@stacks/connect');
-      const { AppConfig, UserSession } = await import('@stacks/connect');
+      addLog('Step 1: Importing @stacks/connect...');
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        addLog(`❌ Failed to import @stacks/connect: ${error}`);
+        throw error;
+      });
       
-      addLog('Stacks Connect imported successfully');
+      addLog('✅ @stacks/connect imported successfully');
+      addLog(`Available exports: ${Object.keys(stacksConnect).join(', ')}`);
+      
+      // Try to get functions from different possible locations
+      const showConnect = stacksConnect.showConnect || stacksConnect.default?.showConnect || (stacksConnect as any).showConnect;
+      const AppConfig = stacksConnect.AppConfig || stacksConnect.default?.AppConfig || (stacksConnect as any).AppConfig;
+      const UserSession = stacksConnect.UserSession || stacksConnect.default?.UserSession || (stacksConnect as any).UserSession;
+      
+      // Validate functions
+      if (typeof showConnect !== 'function') {
+        addLog(`❌ showConnect is not a function. Type: ${typeof showConnect}`);
+        throw new Error('showConnect function not available');
+      }
+      
+      addLog('✅ showConnect is available');
       
       const appConfig = new AppConfig(['store_write', 'publish_data']);
       const userSession = new UserSession({ appConfig });
       
-      addLog('AppConfig and UserSession created');
+      addLog('✅ AppConfig and UserSession created');
       
       showConnect({
         appDetails: {
@@ -69,10 +86,10 @@ export const DebugWallet: React.FC = () => {
         userSession,
       });
       
-      addLog('showConnect called successfully');
+      addLog('✅ showConnect called successfully');
       
     } catch (error) {
-      addLog(`❌ Error in basic connection: ${error}`);
+      addLog(`❌ Error in basic connection: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Connection error:', error);
     }
   };
@@ -102,6 +119,41 @@ export const DebugWallet: React.FC = () => {
     );
     
     addLog(`Potential wallet keys in window: ${walletKeys.join(', ')}`);
+  };
+
+  const testLibraryImports = async () => {
+    addLog('Testing library imports...');
+    
+    try {
+      const stacksConnect = await import('@stacks/connect').catch((error) => {
+        addLog(`❌ Failed to import @stacks/connect: ${error}`);
+        throw error;
+      });
+      
+      addLog('✅ @stacks/connect imported successfully');
+      addLog(`Available exports: ${Object.keys(stacksConnect).slice(0, 10).join(', ')}...`);
+      
+      // Test if specific functions are available
+      const functions = {
+        showConnect: stacksConnect.showConnect ? 'function' : 'not found',
+        AppConfig: stacksConnect.AppConfig ? 'function' : 'not found',
+        UserSession: stacksConnect.UserSession ? 'function' : 'not found',
+        openContractCall: stacksConnect.openContractCall ? 'function' : 'not found',
+        openSignatureRequestPopup: stacksConnect.openSignatureRequestPopup ? 'function' : 'not found',
+      };
+      
+      addLog(`Function availability: ${JSON.stringify(functions, null, 2)}`);
+      
+      // Check if functions exist in different locations
+      if (!stacksConnect.showConnect && stacksConnect.default) {
+        addLog('Checking default export...');
+        const defaultFunctions = Object.keys(stacksConnect.default).slice(0, 10);
+        addLog(`Default export contains: ${defaultFunctions.join(', ')}`);
+      }
+      
+    } catch (error) {
+      addLog(`❌ Error testing library imports: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   return (
@@ -147,10 +199,13 @@ export const DebugWallet: React.FC = () => {
           <CardTitle>🧪 Test Actions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Button onClick={testWalletDetection} className="w-full">
+          <Button onClick={testLibraryImports} className="w-full">
+            Test Library Imports
+          </Button>
+          <Button onClick={testWalletDetection} className="w-full" variant="outline">
             Test Wallet Detection
           </Button>
-          <Button onClick={testBasicConnection} className="w-full" variant="outline">
+          <Button onClick={testBasicConnection} className="w-full" variant="secondary">
             Test Basic Connection
           </Button>
         </CardContent>
