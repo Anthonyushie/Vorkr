@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useStacks } from "@/contexts/StacksContext"
 import { useState } from "react"
+import ThemeToggle from "@/components/ui/theme-toggle"
 import {
   Dialog,
   DialogContent,
@@ -132,6 +133,7 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-3">
+          <ThemeToggle />
           <Button variant="outline" size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Post Bounty
@@ -311,6 +313,10 @@ export function Header() {
 
             {/* Mobile Actions */}
             <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold">Theme</span>
+                <ThemeToggle />
+              </div>
               <Button variant="outline" className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
                 Post Bounty
