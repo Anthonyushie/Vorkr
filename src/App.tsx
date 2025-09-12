@@ -12,6 +12,7 @@ import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
 import WalletDemo from "./pages/WalletDemo";
 import WalletTest from "./pages/WalletTest";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,11 @@ const App = () => (
             <Route path="/wallet-test" element={<WalletTest />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/" element={
               <ProtectedRoute>
                 <Index />
