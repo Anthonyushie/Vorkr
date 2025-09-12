@@ -249,13 +249,6 @@ export function Header() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open('https://wallet.hiro.so/', '_blank')}
-                        >
-                          Install Hiro Wallet
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => window.open('https://leather.io/', '_blank')}
                         >
                           Install Leather Wallet
@@ -394,14 +387,6 @@ export function Header() {
                             No Stacks wallets detected. Install a wallet to continue.
                           </p>
                           <div className="space-y-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open('https://wallet.hiro.so/', '_blank')}
-                              className="w-full"
-                            >
-                              Install Hiro Wallet
-                            </Button>
                             <Button
                               variant="outline"
                               size="sm"

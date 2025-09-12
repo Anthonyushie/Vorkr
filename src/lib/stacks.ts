@@ -51,29 +51,15 @@ export const networkConfigs: Record<NetworkType, NetworkConfig> = {
   },
 };
 
-// Wallet Detection and Management
+// Wallet Detection and Management (Leather-only)
 export const detectAvailableWallets = (): WalletInfo[] => {
   const wallets: WalletInfo[] = [
-    {
-      id: 'hiro',
-      name: 'Hiro Wallet',
-      icon: '🔥',
-      installed: !!(window.StacksProvider || window.HiroWalletProvider),
-      provider: window.StacksProvider || window.HiroWalletProvider,
-    },
     {
       id: 'leather',
       name: 'Leather Wallet',
       icon: '🧳',
       installed: !!(window.LeatherProvider || (window as any).btc?.request || (window as any).LeatherProvider),
       provider: window.LeatherProvider || (window as any).LeatherProvider,
-    },
-    {
-      id: 'xverse',
-      name: 'Xverse Wallet',
-      icon: '✨',
-      installed: !!window.XverseProviders?.StacksProvider,
-      provider: window.XverseProviders?.StacksProvider,
     },
   ];
 
@@ -82,22 +68,13 @@ export const detectAvailableWallets = (): WalletInfo[] => {
 
 export const getWalletType = (): WalletType => {
   if (window.LeatherProvider || (window as any).LeatherProvider) return 'leather';
-  if (window.XverseProviders?.StacksProvider) return 'xverse';
-  if (window.StacksProvider || window.HiroWalletProvider) return 'hiro';
   return 'unknown';
 };
 
-// Connection
+// Connection (Leather-only)
 export const connectWallet = async (walletType?: WalletType): Promise<any> => {
   try {
-    const approvedProviderIds =
-      walletType === 'leather'
-        ? ['LeatherProvider']
-        : walletType === 'hiro'
-        ? ['StacksProvider']
-        : walletType === 'xverse'
-        ? ['xverse']
-        : undefined;
+    const approvedProviderIds = ['LeatherProvider'];
 
     const response = await stacksConnect({ forceWalletSelect: true, approvedProviderIds });
 
