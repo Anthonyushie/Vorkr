@@ -111,13 +111,13 @@
 )
   (begin
     (asserts! (> reward-ustx u0) (err ERR-INVALID-REWARD))
-    (match (as-contract (stx-transfer? reward-ustx (contract-caller) tx-sender)) transfer-ok
+    (match (stx-transfer? reward-ustx tx-sender (as-contract tx-sender)) transfer-ok
       (begin
         (let ((id (var-get next-id)))
           (var-set next-id (+ id u1))
           (map-set bounties { id: id }
             {
-              creator: (contract-caller),
+              creator: tx-sender,
               title: title,
               description: description,
               repo: repo,
@@ -131,7 +131,7 @@
             }
           )
           (var-set bounty-ids (concat (var-get bounty-ids) (list id)))
-          (print { event: "create", id: id, creator: (contract-caller), reward: reward-ustx })
+          (print { event: "create", id: id, creator: tx-sender, reward: reward-ustx })
           (ok id)
         )
       )

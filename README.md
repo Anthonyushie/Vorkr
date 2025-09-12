@@ -1,115 +1,191 @@
-# Welcome to your Lovable project
+# Vorkr — GitHub Bounty Escrow on Stacks
 
-## Setting up GitHub Authentication
+A neo‑brutalist bounty platform where sponsors escrow STX into a Clarity smart contract and pay developers automatically once their GitHub pull request is merged. Auth is GitHub‑only (via Supabase). Wallets use @stacks/connect (Leather). The UI is Vite + React 18 + TypeScript + Tailwind + shadcn‑ui.
 
-To enable GitHub authentication for your Vorkr bounty platform, follow these steps:
+- Smart contract: principal↔GitHub username registry, escrowed bounties, apply/assign/submit, oracle‑gated release, deadline refunds.
+- Oracle service: watches chain for PR submissions, validates with GitHub API, triggers payout.
+- Frontend: Post Bounty (/create), Browse Bounties (/browse), Dashboard (/dashboard), with wallet connect and dark mode toggle.
 
-### 1. Set up Supabase Project
+For step‑by‑step setup and deployment instructions, see SETUP.md.
 
-1. Go to [Supabase](https://supabase.com) and create a new project
-2. Once your project is created, go to Settings > API
-3. Copy your Project URL and anon/public key
+## Architecture
 
-### 2. Configure GitHub OAuth
+- Clarity contract (contracts/bounty-escrow.clar)
+  - Stores bounties: title, description, repo, issue, reward, deadline, status, applicants, assignee, PR link
+  - Funds are escrowed at creation; payout is contract‑driven only
+  - Only contract owner/oracle can release funds; creators can refund after deadline
+  - Emits print events for indexing
+- Oracle (oracle/)
+  - Polls Stacks chain for bounties with submitted PRs
+  - Validates “merged” state and author matches on-chain assignee via GitHub API
+  - Calls release-bounty on success using oracle wallet key
+- Frontend (src/)
+  - Supabase GitHub OAuth for sign‑in, Stacks wallet for transactions
+  - /create creates on‑chain bounty with escrow
+  - /browse reads bounties from chain; apply and submit PR
+  - /dashboard shows profile/wallet summaries and histories
 
-1. In your Supabase dashboard, go to Authentication > Providers
-2. Find GitHub and click "Enable"
-3. You'll need to create a GitHub OAuth App:
-   - Go to GitHub Settings > Developer settings > OAuth Apps
-   - Click "New OAuth App"
-   - Fill in the details:
-     - Application name: `Vorkr` (or your preferred name)
-     - Homepage URL: `http://localhost:8080` (for development)
-     - Authorization callback URL: `https://your-project-ref.supabase.co/auth/v1/callback`
-   - Click "Register application"
-4. Copy the Client ID and Client Secret from GitHub
-5. Paste them into the Supabase GitHub provider settings
-6. Save the configuration
+## Repo structure (high‑level)
 
-### 3. Set Environment Variables
-
-Create a `.env` file in your project root with:
-
-```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+contracts/
+  bounty-escrow.clar         # Clarity smart contract
+oracle/
+  package.json
+  tsconfig.json
+  .env.sample
+  src/
+    config.ts                # env
+    stacks.ts                # chain reads/calls
+    github.ts                # GitHub API
+    index.ts                 # web server + poller (/health)
+src/
+  App.tsx                    # routes
+  config.ts                  # frontend contract config
+  lib/
+    stacks.ts                # wallet + network helpers
+    stacksClient.ts          # contract call helpers (create, apply, submit PR)
+  pages/
+    Create.tsx               # /create Post Bounty
+    Browse.tsx               # /browse Bounty Feed
+    Dashboard.tsx            # /dashboard
+    SignIn.tsx, Index.tsx, ...
+  components/
+    layout/Header.tsx        # header + wallet + theme toggle
+    bounty/BountyCard.tsx
+README.md
+SETUP.md
+Clarinet.toml                 # local/testnet config
 ```
 
-### 4. Update Production Settings
+## Smart Contract: bounty-escrow.clar
 
-When deploying to production:
-1. Update the GitHub OAuth App settings with your production URL
-2. Update the callback URL to: `https://your-project-ref.supabase.co/auth/v1/callback`
-3. Set the environment variables in your hosting platform
+Storage
+- p2u: principal → github username
+- u2p: github username → principal
+- bounties: id → {
+  creator, title, description, repo, issue, reward-ustx, deadline-height?, assignee?, pr-link?, status, applicants[]
+}
+- next-id: next bounty id
+- bounty-ids: list of all ids
+- owner: set at deployment to tx-sender (the contract deployer/oracle)
 
-## Project info
+Statuses
+- "open" → "assigned" → "submitted" → "completed" | "refunded"
 
-**URL**: https://lovable.dev/projects/e551faaf-cade-48a2-811f-e952995e92ee
+Public functions
+- (register-github (username (string-ascii 39)))
+- (create-bounty (title (string-utf8 120)) (description (string-utf8 500)) (repo (string-ascii 100)) (issue uint) (reward-ustx uint) (deadline (optional uint)))
+  - Transfers STX from tx-sender to contract for escrow
+- (apply-bounty (id uint))
+- (assign-bounty (id uint) (username (string-ascii 39))) ; creator only
+- (submit-pr (id uint) (pr (string-utf8 200))) ; assignee only
+- (release-bounty (id uint)) ; owner/oracle only, pays assignee principal
+- (refund-bounty (id uint)) ; creator only, after deadline
 
-## How can I edit this code?
+Read‑only functions
+- (get-owner) → principal
+- (get-username who) → (optional username)
+- (get-principal username) → (optional principal)
+- (get-bounty id) → (optional bounty)
+- (get-all-bounty-ids) → (list uint)
 
-There are several ways of editing your application.
+Events (print)
+- { event: "register", principal, username }
+- { event: "create", id, creator, reward }
+- { event: "apply", id, username }
+- { event: "assign", id, username }
+- { event: "submit", id, username, pr }
+- { event: "release", id, to, username }
+- { event: "refund", id, to }
 
-**Use Lovable**
+Security/Correctness
+- Escrow: create‑bounty transfers from caller to contract principal
+- Payouts: only owner/oracle can release; transfers from contract to assignee
+- Refunds: only creator after deadline, transfers from contract to creator
+- Prevents double‑spend by zeroing reward after release/refund
+- Permission checks for all state transitions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e551faaf-cade-48a2-811f-e952995e92ee) and start prompting.
+## Oracle Service
 
-Changes made via Lovable will be committed automatically to this repo.
+Responsibilities
+- Poll chain for bounties with status=submitted
+- Parse PR link, load GitHub PR, verify:
+  - PR is merged and closed
+  - PR author’s GitHub login matches on‑chain assignee username
+  - PR repo matches bounty repo
+- On valid: call release-bounty(id)
 
-**Use your preferred IDE**
+Config (oracle/.env)
+- STACKS_NETWORK=testnet|mainnet
+- CONTRACT_ADDRESS=SP...
+- CONTRACT_NAME=bounty-escrow
+- ORACLE_SECRET_KEY=hex private key of oracle wallet
+- GITHUB_TOKEN=GitHub PAT (read public repo)
+- POLL_INTERVAL_MS=30000
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Run
+- cd oracle && npm i
+- cp .env.sample .env (fill values)
+- npm run dev
+- Health: GET http://localhost:8787/health → { ok: true }
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Frontend
 
-Follow these steps:
+Routes
+- /create: Post Bounty — escrows STX and writes on chain
+- /browse: Bounty Feed — reads chain; apply; submit PR
+- /dashboard: Profile + wallet + history (mock history data for now)
+- /signin, /auth/callback: Supabase GitHub OAuth
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Contract calls
+- src/lib/stacksClient.ts
+  - createBounty, applyBounty, submitPr — all via @stacks/connect
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Auth & Wallet
+- Supabase GitHub OAuth (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+- Stacks Leather wallet via @stacks/connect with network switch
 
-# Step 3: Install the necessary dependencies.
-npm i
+Dark mode
+- next-themes + Tailwind dark class, toggle in header
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Environment Variables
 
-**Edit a file directly in GitHub**
+Frontend (.env)
+- VITE_SUPABASE_URL=https://<project>.supabase.co
+- VITE_SUPABASE_ANON_KEY=...
+- VITE_STACKS_NETWORK=testnet|mainnet (default testnet)
+- VITE_CONTRACT_ADDRESS=SP...
+- VITE_CONTRACT_NAME=bounty-escrow
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Oracle (.env)
+- See Oracle Service section
 
-**Use GitHub Codespaces**
+## Development
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Install & run web
+- npm i
+- npm run dev
 
-## What technologies are used for this project?
+Clarinet (optional local dev)
+- clarinet check
+- clarinet console
+- clarinet integrate
+- clarinet deploy --network testnet bounty-escrow
 
-This project is built with:
+## Typical workflow
+1) Sign in with GitHub (/signin) and connect Stacks wallet
+2) Register on‑chain GitHub username (see SETUP.md for quick call snippet)
+3) Post a bounty (/create) — funds escrowed to contract
+4) Developers apply (/browse)
+5) Creator assigns one GitHub username
+6) Assignee submits PR link
+7) Oracle verifies PR and releases payout to assignee principal
+8) If deadline passes without completion, creator calls refund
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Limitations / Notes
+- A simple on‑chain registry maps principal↔GitHub username; ensure developers register before applying or submitting
+- The oracle must run continuously for automatic payouts
+- Browse data is read live from chain; for scale, add an indexer/cacher later
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/e551faaf-cade-48a2-811f-e952995e92ee) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For installation and deployment with all prerequisites, see SETUP.md.
