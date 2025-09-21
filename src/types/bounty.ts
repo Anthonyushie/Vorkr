@@ -1,14 +1,13 @@
-export type BountyStatus = 'open' | 'assigned' | 'submitted' | 'completed' | 'refunded'
+export type BountyStatus = 'open' | 'released' | 'refunded'
 
 export interface Bounty {
   id: number
-  title: string
-  description: string
-  repo: string
-  issue: number
-  rewardUstx: string
-  deadlineHeight?: number
-  assignee?: string
+  creator: string
+  amountUstx: string
+  issueLink: string
+  details: string
+  developer?: string
+  deadline: number
+  proof?: string
   status: BountyStatus
-  applicants: string[]
 }

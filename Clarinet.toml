@@ -10,7 +10,6 @@ costs_version = 2
 
 [accounts]
 deployer = { mnemonic = "replace-with-your-12-words", balance = 100000000000000 }
-oracle   = { mnemonic = "replace-with-your-12-words", balance = 100000000000000 }
 user1    = { mnemonic = "replace-with-your-12-words", balance = 100000000000 }
 user2    = { mnemonic = "replace-with-your-12-words", balance = 100000000000 }
 
