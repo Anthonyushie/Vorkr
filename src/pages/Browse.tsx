@@ -12,20 +12,20 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { applyBounty, submitPr } from '@/lib/stacksClient'
+import { applyBounty, submitProof } from '@/lib/stacksClient'
 import { toast } from '@/hooks/use-toast'
+import { Link } from 'react-router-dom'
 
 interface ChainBounty {
   id: number
-  title: string
-  description: string
-  repo: string
-  issue: number
-  rewardUstx: string
-  deadlineHeight?: number
-  assignee?: string
-  status: 'open' | 'assigned' | 'submitted' | 'completed' | 'refunded'
-  applicants: string[]
+  creator: string
+  amountUstx: string
+  issueLink: string
+  details: string
+  developer?: string
+  deadline: number
+  status: 'open' | 'released' | 'refunded'
+  proof?: string
 }
 
 async function fetchIds(networkType: 'mainnet' | 'testnet') {
@@ -54,30 +54,28 @@ async function fetchBounty(networkType: 'mainnet' | 'testnet', id: number): Prom
   const json = cvToJSON(res)
   if (json.type !== 'response' || json.value.type !== 'optional' || !json.value.value) return null
   const t = json.value.value as any
-  const applicants: string[] = (t.value.applicants.value as any[]).map((a: any) => a.value)
   return {
     id,
-    title: t.value.title.value,
-    description: t.value.description.value,
-    repo: t.value.repo.value,
-    issue: Number(t.value.issue.value),
-    rewardUstx: String(t.value['reward-ustx'].value),
-    deadlineHeight: t.value['deadline-height'].value ? Number(t.value['deadline-height'].value.value) : undefined,
-    assignee: t.value.assignee.value ? (t.value.assignee.value as any).value : undefined,
+    creator: (t.value.creator.value as string),
+    amountUstx: String(t.value.amount.value),
+    issueLink: t.value['issue-link'].value,
+    details: t.value.details.value,
+    developer: t.value.developer.value ? (t.value.developer.value as any).value : undefined,
+    deadline: Number(t.value.deadline.value),
     status: t.value.status.value,
-    applicants,
+    proof: t.value.proof.value ? (t.value.proof.value as any).value : undefined,
   }
 }
 
-const prSchema = z.object({ pr: z.string().url() })
+const proofSchema = z.object({ proof: z.string().url().max(256) })
 
 export default function Browse() {
-  const { networkType } = useStacks()
+  const { networkType, stxAddress } = useStacks()
   const [bounties, setBounties] = useState<ChainBounty[]>([])
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(false)
   const [active, setActive] = useState<ChainBounty | null>(null)
-  const form = useForm({ resolver: zodResolver(prSchema) })
+  const form = useForm({ resolver: zodResolver(proofSchema) }) as any
 
   useEffect(() => {
     const load = async () => {
@@ -85,7 +83,8 @@ export default function Browse() {
       try {
         const ids = await fetchIds(networkType)
         const rows = await Promise.all(ids.map(id => fetchBounty(networkType, id)))
-        setBounties(rows.filter(Boolean) as ChainBounty[])
+        const list = (rows.filter(Boolean) as ChainBounty[]).filter(b => b.status === 'open')
+        setBounties(list)
       } finally {
         setLoading(false)
       }
@@ -94,27 +93,27 @@ export default function Browse() {
   }, [networkType])
 
   const filtered = useMemo(() => bounties.filter(b => {
-    const hay = `${b.title} ${b.description} ${b.repo} ${b.status}`.toLowerCase()
+    const hay = `${b.details} ${b.issueLink} ${b.status}`.toLowerCase()
     return hay.includes(q.toLowerCase())
   }), [bounties, q])
 
   const onApply = async (b: ChainBounty) => {
     try {
       await applyBounty(b.id, networkType)
-      toast({ title: 'Applied', description: 'Your GitHub username has been recorded on this bounty.' })
+      toast({ title: 'Applied', description: 'You have been set as developer for this bounty.' })
     } catch (e: any) {
       toast({ title: 'Failed to apply', description: e?.message || 'Unknown error', variant: 'destructive' })
     }
   }
 
-  const onSubmitPr = async (values: z.infer<typeof prSchema>) => {
+  const onSubmitProof = async (values: z.infer<typeof proofSchema>) => {
     if (!active) return
     try {
-      await submitPr(active.id, values.pr, networkType)
-      toast({ title: 'PR submitted', description: 'Submission recorded on-chain.' })
+      await submitProof(active.id, values.proof, networkType)
+      toast({ title: 'Proof submitted', description: 'Submission recorded on-chain.' })
       setActive(null)
     } catch (e: any) {
-      toast({ title: 'Failed to submit PR', description: e?.message || 'Unknown error', variant: 'destructive' })
+      toast({ title: 'Failed to submit proof', description: e?.message || 'Unknown error', variant: 'destructive' })
     }
   }
 
@@ -137,44 +136,51 @@ export default function Browse() {
               <div key={b.id} className="space-y-3">
                 <BountyCard
                   id={String(b.id)}
-                  title={b.title}
-                  description={b.description}
-                  reward={Math.floor(Number(b.rewardUstx) / 1_000_0) / 100}
+                  title={b.issueLink}
+                  description={b.details}
+                  reward={Math.floor(Number(b.amountUstx) / 1_000_0) / 100}
                   currency="STX"
-                  tags={[b.repo]}
-                  deadline={b.deadlineHeight ? `h#${b.deadlineHeight}` : '—'}
-                  applicants={b.applicants.length}
-                  creator={{ name: b.repo.split('/')[0] }}
-                  status={b.status === 'open' || b.status === 'in-progress' ? 'open' : (b.status === 'completed' ? 'completed' : 'in-progress')}
+                  tags={[new URL(b.issueLink).host]}
+                  deadline={`h#${b.deadline}`}
+                  applicants={0}
+                  creator={{ name: `${b.creator.slice(0, 6)}...${b.creator.slice(-4)}` }}
+                  status={'open'}
                 />
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => onApply(b)}>Apply</Button>
-                  <Dialog open={active?.id === b.id} onOpenChange={open => setActive(open ? b : null)}>
-                    <DialogTrigger asChild>
-                      <Button className="flex-1">Submit PR</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Submit PR for “{b.title}”</DialogTitle>
-                      </DialogHeader>
-                      <Form {...form}>
-                        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmitPr)}>
-                          <FormField name="pr" control={form.control} render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>PR Link</FormLabel>
-                              <FormControl>
-                                <Input className="input-brutal" placeholder="https://github.com/owner/repo/pull/123" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                          <div className="flex justify-end">
-                            <Button type="submit">Submit</Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
+                  {!b.developer && (
+                    <Button variant="outline" className="flex-1" onClick={() => onApply(b)}>Apply</Button>
+                  )}
+                  {b.developer && stxAddress && b.developer === stxAddress && (
+                    <Dialog open={active?.id === b.id} onOpenChange={open => setActive(open ? b : null)}>
+                      <DialogTrigger asChild>
+                        <Button className="flex-1">Submit Proof</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Submit Proof</DialogTitle>
+                        </DialogHeader>
+                        <Form {...form}>
+                          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmitProof)}>
+                            <FormField name="proof" control={form.control} render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Proof Link</FormLabel>
+                                <FormControl>
+                                  <Input className="input-brutal" placeholder="https://github.com/owner/repo/pull/123" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <div className="flex justify-end">
+                              <Button type="submit">Submit</Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  <Link to={`/bounty/${b.id}`} className="flex-1">
+                    <Button variant="secondary" className="w-full">View</Button>
+                  </Link>
                 </div>
               </div>
             ))}

@@ -1,26 +1,25 @@
 import { CONTRACT_ADDRESS, CONTRACT_NAME } from '@/config'
-import { getStacksNetwork } from '@/lib/stacks'
 import { stacksRequest } from '@stacks/connect'
-import { cvToHex, someCV, stringAsciiCV, stringUtf8CV, uintCV } from '@stacks/transactions'
+import { cvToHex, someCV, noneCV, stringAsciiCV, uintCV, standardPrincipalCV } from '@stacks/transactions'
 import type { NetworkType } from '@/types/stacks'
 
 export type CreateBountyInput = {
-  title: string
-  description: string
-  repo: string // owner/repo
-  issue: number
-  rewardStx: number
-  deadlineHeight?: number
+  id: number
+  issueLink: string
+  details: string
+  developer?: string
+  deadline: number
+  amountStx: number
 }
 
 export async function createBounty(input: CreateBountyInput, networkType: NetworkType) {
   const fnArgs = [
-    stringUtf8CV(input.title),
-    stringUtf8CV(input.description),
-    stringAsciiCV(input.repo),
-    uintCV(BigInt(input.issue)),
-    uintCV(BigInt(Math.floor(input.rewardStx * 1_000_000))),
-    input.deadlineHeight !== undefined ? someCV(uintCV(BigInt(input.deadlineHeight))) : { type: 11 } as any // none
+    uintCV(BigInt(input.id)),
+    stringAsciiCV(input.issueLink),
+    stringAsciiCV(input.details),
+    input.developer ? someCV(standardPrincipalCV(input.developer)) : noneCV(),
+    uintCV(BigInt(input.deadline)),
+    uintCV(BigInt(Math.floor(input.amountStx * 1_000_000)))
   ].map(cvToHex)
 
   return stacksRequest('stx_callContract', {
@@ -41,11 +40,31 @@ export async function applyBounty(id: number, networkType: NetworkType) {
   })
 }
 
-export async function submitPr(id: number, prLink: string, networkType: NetworkType) {
-  const fnArgs = [uintCV(BigInt(id)), stringUtf8CV(prLink)].map(cvToHex)
+export async function submitProof(id: number, proof: string, networkType: NetworkType) {
+  const fnArgs = [uintCV(BigInt(id)), stringAsciiCV(proof)].map(cvToHex)
   return stacksRequest('stx_callContract', {
     contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
-    functionName: 'submit-pr',
+    functionName: 'submit-proof',
+    functionArgs: fnArgs,
+    network: networkType,
+  })
+}
+
+export async function releaseBounty(id: number, networkType: NetworkType) {
+  const fnArgs = [uintCV(BigInt(id))].map(cvToHex)
+  return stacksRequest('stx_callContract', {
+    contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
+    functionName: 'release-bounty',
+    functionArgs: fnArgs,
+    network: networkType,
+  })
+}
+
+export async function refundBounty(id: number, networkType: NetworkType) {
+  const fnArgs = [uintCV(BigInt(id))].map(cvToHex)
+  return stacksRequest('stx_callContract', {
+    contract: `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`,
+    functionName: 'refund-bounty',
     functionArgs: fnArgs,
     network: networkType,
   })

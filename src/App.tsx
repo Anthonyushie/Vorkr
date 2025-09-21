@@ -16,6 +16,7 @@ import WalletTest from "./pages/WalletTest";
 import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import Browse from "./pages/Browse";
+import Bounty from "./pages/Bounty";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,11 @@ const App = () => (
                 <Route path="/browse" element={
                   <ProtectedRoute>
                     <Browse />
+                  </ProtectedRoute>
+                } />
+                <Route path="/bounty/:id" element={
+                  <ProtectedRoute>
+                    <Bounty />
                   </ProtectedRoute>
                 } />
                 <Route path="/create" element={

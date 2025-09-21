@@ -10,24 +10,69 @@ import { useStacks } from '@/contexts/StacksContext'
 import { createBounty } from '@/lib/stacksClient'
 import { toast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
+import { CONTRACT_ADDRESS, CONTRACT_NAME } from '@/config'
+import { callReadOnlyFunction, cvToJSON } from '@stacks/transactions'
+import { getStacksNetwork } from '@/lib/stacks'
 
 const schema = z.object({
-  title: z.string().min(3).max(120),
-  description: z.string().min(10).max(500),
-  repo: z.string().regex(/^[^\/\s]+\/[^\/\s]+$/, 'Use owner/repo'),
-  issue: z.coerce.number().int().nonnegative(),
-  rewardStx: z.coerce.number().positive(),
-  deadlineHeight: z.coerce.number().int().positive().optional(),
+  amountStx: z.coerce.number().positive(),
+  issueLink: z.string().url().max(256),
+  details: z.string().min(3).max(256),
+  developer: z.string().min(1).optional(),
+  deadline: z.string().min(1),
 })
 
+async function getNextBountyId(networkType: 'mainnet' | 'testnet') {
+  try {
+    const res = await callReadOnlyFunction({
+      contractAddress: CONTRACT_ADDRESS,
+      contractName: CONTRACT_NAME,
+      functionName: 'get-all-bounty-ids',
+      functionArgs: [],
+      network: getStacksNetwork(networkType),
+      senderAddress: CONTRACT_ADDRESS,
+    })
+    const json = cvToJSON(res)
+    const ids = (json.value as any[]).map(x => Number(x.value))
+    return ids.length ? Math.max(...ids) + 1 : 1
+  } catch {
+    return Math.floor(Date.now() / 1000)
+  }
+}
+
+async function getTipHeight(networkType: 'mainnet' | 'testnet') {
+  const network = getStacksNetwork(networkType)
+  const res = await fetch(`${network.coreApiUrl}/v2/info`)
+  const data = await res.json()
+  return Number(data.stacks_tip_height || data.stacks_tip || 0)
+}
+
+async function estimateDeadlineHeight(deadlineIso: string, networkType: 'mainnet' | 'testnet') {
+  const tip = await getTipHeight(networkType)
+  const target = new Date(deadlineIso).getTime()
+  const now = Date.now()
+  const seconds = Math.max(0, Math.floor((target - now) / 1000))
+  const blocks = Math.ceil(seconds / 600)
+  return tip + Math.max(1, blocks)
+}
+
 export default function Create() {
-  const form = useForm({ resolver: zodResolver(schema), defaultValues: { rewardStx: 10 } })
+  const form = useForm({ resolver: zodResolver(schema), defaultValues: { amountStx: 10 } })
   const { networkType } = useStacks()
   const navigate = useNavigate()
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
-      await createBounty(values, networkType)
+      const id = await getNextBountyId(networkType)
+      const deadlineHeight = await estimateDeadlineHeight(values.deadline, networkType)
+      await createBounty({
+        id,
+        issueLink: values.issueLink,
+        details: values.details,
+        developer: values.developer,
+        deadline: deadlineHeight,
+        amountStx: values.amountStx,
+      }, networkType)
       toast({ title: 'Bounty posted', description: 'Your bounty has been created and escrowed.' })
       navigate('/dashboard')
     } catch (e: any) {
@@ -42,35 +87,35 @@ export default function Create() {
         <div className="max-w-3xl mx-auto">
           <div className="card-brutal p-6 mb-6">
             <h1 className="text-heading mb-2">Post a <span className="text-primary">Bounty</span></h1>
-            <p className="text-body text-muted-foreground">Escrow STX directly in the contract. Assigned developer gets released automatically after the PR is merged.</p>
+            <p className="text-body text-muted-foreground">Escrow STX directly in the contract. No oracles. Creator releases or refunds.</p>
           </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField name="title" control={form.control} render={({ field }) => (
+                <FormField name="amountStx" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Amount (STX)</FormLabel>
                     <FormControl>
-                      <Input className="input-brutal" placeholder="Short, clear title" {...field} />
+                      <Input type="number" step="0.000001" className="input-brutal" placeholder="100" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField name="repo" control={form.control} render={({ field }) => (
+                <FormField name="issueLink" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Repository (owner/repo)</FormLabel>
+                    <FormLabel>GitHub Issue Link</FormLabel>
                     <FormControl>
-                      <Input className="input-brutal" placeholder="owner/repo" {...field} />
+                      <Input className="input-brutal" placeholder="https://github.com/owner/repo/issues/123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
               </div>
 
-              <FormField name="description" control={form.control} render={({ field }) => (
+              <FormField name="details" control={form.control} render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Bounty Details</FormLabel>
                   <FormControl>
                     <Textarea className="input-brutal min-h-[140px]" placeholder="What should be built? Acceptance criteria?" {...field} />
                   </FormControl>
@@ -78,30 +123,21 @@ export default function Create() {
                 </FormItem>
               )} />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <FormField name="issue" control={form.control} render={({ field }) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField name="developer" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Issue #</FormLabel>
+                    <FormLabel>Developer (optional STX address)</FormLabel>
                     <FormControl>
-                      <Input type="number" className="input-brutal" placeholder="123" {...field} />
+                      <Input className="input-brutal" placeholder="SP..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField name="rewardStx" control={form.control} render={({ field }) => (
+                <FormField name="deadline" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reward (STX)</FormLabel>
+                    <FormLabel>Deadline</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.000001" className="input-brutal" placeholder="100" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField name="deadlineHeight" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deadline Height (optional)</FormLabel>
-                    <FormControl>
-                      <Input type="number" className="input-brutal" placeholder="e.g. 123456" {...field} />
+                      <Input type="datetime-local" className="input-brutal" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
